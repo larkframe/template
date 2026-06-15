@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>User Test - Twig</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; color: #333; }
+        h1 { margin-bottom: 16px; }
+        .info { background: #f9f9f9; padding: 16px; border-radius: 6px; margin-bottom: 12px; }
+        .info dt { font-weight: bold; margin-top: 8px; }
+        .info dd { margin-left: 0; color: #666; }
+        a { color: #0066cc; }
+    </style>
+</head>
+<body>
+    <h1>User: {{ name }}</h1>
+
+    <dl class="info">
+        <dt>Name</dt>
+        <dd>{{ name }}</dd>
+
+        {% if email is defined %}
+        <dt>Email</dt>
+        <dd>{{ email }}</dd>
+        {% endif %}
+
+        {% if roles is defined %}
+        <dt>Roles</dt>
+        <dd>{{ roles | join(', ') }}</dd>
+        {% endif %}
+    </dl>
+
+    <p><a href="/">&larr; Back to Home</a></p>
+</body>
+</html>
