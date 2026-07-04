@@ -196,7 +196,8 @@ class AuthMiddleware implements MiddlewareInterface
     public function process(Request $request, callable $handler): Response
     {
         if (!$request->header('authorization')) {
-            return json(['error' => 'Unauthorized'], 401);
+            // json() 状态码固定 200，自定义状态码用 ->withStatus()
+            return json(['error' => 'Unauthorized'])->withStatus(401);
         }
         return $handler($request);
     }
@@ -242,15 +243,17 @@ return twig_view('default/index', ['username' => 'world'], 'twig');
 
 ### 环境变量 (.env)
 
-`.env` 文件仅用于定义应用启动参数，框架首次启动时会自动创建。它**不会**注入到 `config()` 配置系统中。
+`.env` 文件仅用于定义应用启动参数，框架首次启动时会自动创建（默认 `RUN_MODE=prod`）。它**不会**注入到 `config()` 配置系统中。
 
 ```ini
 APP_NAME=myapp        # 应用名称，定义为 APP_NAME 常量
 TIME_ZONE=Asia/Shanghai  # 时区
-RUN_MODE=dev          # 运行模式：dev/test/stage/prod，定义为 RUN_MODE 常量
+RUN_MODE=prod         # 运行模式：dev/test/stage/prod，定义为 RUN_MODE 常量；框架据此加载 config.{RUN_MODE}.php 覆盖配置
 ```
 
 > 敏感配置（数据库密码、Redis 密码等）应通过 `config/config.{env}.php` 环境覆盖文件管理，而非 `.env`。
+>
+> `config/config.php` 中 `app.debug` 默认 `false`（生产安全）。开发时将 `.env` 的 `RUN_MODE` 改为 `dev`，并创建 `config/config.dev.php` 覆盖 `['app' => ['debug' => true]]` 即可开启堆栈详情。
 
 ### 多环境配置
 
@@ -370,12 +373,13 @@ php task.php cleanup "days=30"
 ```php
 return [
     'cron' => [
-        'handler'   => \App\Task\CronTask::class,  // 任务处理类（必须）
-        'options'   => ['interval' => 60],          // 传递给 run() 的选项
-        'daemonize' => false,                       // 是否守护进程
-        'worker'    => ['count' => 1],              // Worker 进程数
-        'pidFile'   => 'task-cron.pid',             // PID 文件（runtime/ 下）
-        'logFile'   => 'task-cron.log',             // 日志文件
+        'handler'    => \App\Task\CronTask::class,  // 任务处理类（必须）
+        'options'    => ['interval' => 60],          // 传递给 run() 的选项
+        'daemonize'  => false,                       // 是否守护进程
+        'worker'     => ['count' => 1],              // Worker 进程数
+        'pidFile'    => 'task-cron.pid',             // PID 文件（runtime/ 下）
+        'stdoutFile' => 'task-cron.stdout.log',      // 标准输出文件（runtime/ 下）
+        'logFile'    => 'task-cron.log',             // 日志文件（runtime/ 下）
     ],
 ];
 ```

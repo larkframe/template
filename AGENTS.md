@@ -208,9 +208,9 @@ $request->getRemoteIp();               // 客户端 IP
 $request->requestId();                 // 请求 ID
 
 // 响应辅助函数
-json($data, $status);                  // JSON 响应
-redirect($url, $status);               // 重定向
-response($body, $status);              // 通用响应
+json($data, $options);                 // JSON 响应（$options 为 JSON 编码标志，状态码固定 200；需自定义状态码用 ->withStatus()）
+redirect($url, $status);               // 重定向（默认 302）
+response($body, $status);              // 通用响应（默认 200）
 raw_view($template, $vars, $suffix);   // PHP 模板
 twig_view($template, $vars, $suffix);  // Twig 模板
 ```
@@ -335,6 +335,8 @@ Context::destroy();  // 请求结束时自动调用
 1. **Action 后缀**：控制器方法必须带 `Action` 后缀（如 `indexAction`），由 `config.route.action_suffix` 控制
 2. **请求隔离**：Server 模式下使用 `Context` 实现请求隔离，不要用 `static`/`global` 存储请求级数据
 3. **连接池**：Server 模式下数据库和 Redis 自动使用连接池，不要手动 `new PDO` 或 `new Redis`
-4. **响应类型**：控制器必须返回 `Response` 对象或使用辅助函数（`json()`/`redirect()`/`raw_view()` 等）
-5. **环境变量**：`.env` 仅用于 `APP_NAME`/`TIME_ZONE`/`RUN_MODE` 三个启动参数（框架自动创建），敏感配置应通过 `config/config.{env}.php` 环境覆盖文件管理，不要硬编码
-6. **类库配置**：`app/Library/Xxx.php` 对应 `config/xxx.php`，继承 `LarkFrame\Library` 后通过 `$this->config` 访问
+4. **响应类型**：控制器必须返回 `Response` 对象或使用辅助函数（`json()`/`redirect()`/`raw_view()` 等）；`json()` 状态码固定 200，需自定义状态码链式调用 `->withStatus(401)`
+5. **调试模式**：`config/config.php` 中 `app.debug` 默认 `false`（生产安全），开发时创建 `config/config.dev.php` 覆盖为 `true`；`RUN_MODE=dev` 时框架自动加载该覆盖文件
+6. **错误处理**：`config/config.php` 的 `error.catch` 控制 Web/Shell 模式下是否注册自定义错误处理器（`error.handler` + `error.options`）；Server 模式在 `onWorkerStart` 内单独注册
+7. **环境变量**：`.env` 仅用于 `APP_NAME`/`TIME_ZONE`/`RUN_MODE` 三个启动参数（框架自动创建），敏感配置应通过 `config/config.{env}.php` 环境覆盖文件管理，不要硬编码
+8. **类库配置**：`app/Library/Xxx.php` 对应 `config/xxx.php`，继承 `LarkFrame\Library` 后通过 `$this->config` 访问

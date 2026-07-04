@@ -4,7 +4,8 @@ return [
     'app' => [
         'runtime_path' => 'runtime',
         'name' => 'larkframe',
-        'debug' => true,
+        // 生产环境默认关闭调试，避免堆栈泄漏；开发时通过 config.dev.php 覆盖为 true
+        'debug' => false,
     ],
     'server' => [
         'daemonize' => false,
@@ -34,11 +35,13 @@ return [
     ],
 
     'error' => [
-        'catch' => false,
+        // Web/Shell 模式下注册自定义错误处理器；Server 模式在 onWorkerStart 内单独注册
+        'catch' => true,
         'handler' => \App\Base\ErrorHandler::class,
         'options' => [
-            'display_errors' => true,
-            'notify' => true,
+            // 错误日志写入 Monolog 通道（runtime/logs/access.log），避免 Worker::log 直接输出到 STDOUT 污染响应
+            'logger' => fn(string $msg) => \LarkFrame\Log::error($msg),
+            'error_types' => E_ALL,
         ]
     ],
 
