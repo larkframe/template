@@ -2,20 +2,32 @@
 
 namespace App\Controller;
 
+use App\Base\Controller;
 use LarkFrame\Request;
 use LarkFrame\Db;
 use LarkFrame\Cache\Cache;
 use LarkFrame\Queue;
 use LarkFrame\Util;
 
-class DefaultController
+class DefaultController extends Controller
 {
     /**
-     * 首页
+     * 首页（原生 PHP 模板）
      */
     public function indexAction(Request $request)
     {
         return raw_view('default/index', ['username' => 'world'], 'php');
+    }
+
+    /**
+     * Twig 模板示例（双引擎并存：html 后缀走 Twig 渲染）
+     */
+    public function twigAction(Request $request)
+    {
+        return twig_view('user/test', [
+            'name' => $request->input('name', 'larkframe'),
+            'email' => $request->input('email', ''),
+        ], 'html');
     }
 
     /**

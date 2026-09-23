@@ -6,7 +6,8 @@
 
 - PHP >= 8.1
 - ext-json, ext-pdo, ext-gd
-- 推荐：ext-redis, ext-event
+- Redis（队列 `/api/queue`、Task 示例依赖；默认使用 phpredis 扩展，未安装时在 `config/config.php` 的 redis 配置中加 `'client' => 'predis'`）
+- MySQL（`/api/db` 示例依赖）
 - Composer
 
 ## 快速开始
@@ -53,8 +54,7 @@ myapp/
 │   ├── route.php               # 路由定义
 │   └── task.php                # 任务配置
 ├── public/                     # Web 入口
-│   ├── index.php               # FPM 入口
-│   └── favicon.ico
+│   └── index.php               # FPM 入口
 ├── template/                   # 视图模板
 │   ├── default/
 │   └── user/
@@ -65,6 +65,14 @@ myapp/
 ├── task.php               # Task 模式入口
 └── README.md
 ```
+
+## 框架文档
+
+框架 `larkframe/core` 的完整组件文档随包分发（不在本模板内）：
+
+- composer 安装态：`vendor/larkframe/core/docs/*.md`（16 个组件专题文档）
+- 本地 path 仓库开发态：`../core/docs/*.md`
+- AI 辅助编程入口：`AGENTS.md`（含框架文档索引与 API 速查）
 
 ## 核心功能示例
 
@@ -232,11 +240,11 @@ Util::file()->ensureDir($dir);              // 确保目录存在
 ### 视图
 
 ```php
-// 原生 PHP 模板
+// 原生 PHP 模板（模板文件 template/default/index.php）
 return raw_view('default/index', ['username' => 'world'], 'php');
 
-// Twig 模板
-return twig_view('default/index', ['username' => 'world'], 'twig');
+// Twig 模板（模板文件 template/user/test.html，示例路由 /user/test）
+return twig_view('user/test', ['name' => 'larkframe'], 'html');
 ```
 
 ## 配置说明
@@ -263,6 +271,11 @@ config/
   config.dev.php       # 开发环境覆盖
   config.prod.php      # 生产环境覆盖
 ```
+
+> **注意（浅合并）**：环境覆盖为顶层 `array_merge`——覆盖文件中的顶层键
+> （如 `server`）会**整体替换**主配置的对应键，必须携带完整子结构。
+> 例如 `config.dev.php` 覆盖 `server.socketName` 时需同时带上 `server.middleware`，
+> 否则全局中间件会被清空。
 
 ### 自定义类库配置
 
@@ -292,7 +305,7 @@ class Notify extends \LarkFrame\Library
 |------|---------|---------|
 | Server | `php server.php` | `server.php` |
 | Shell | `php shell.php route "key=value"` | `shell.php` |
-| Task | `php task.php taskname [args]` | `task.php` |
+| Task | `php task.php <taskname> [start\|stop\|restart\|reload\|status] [args]` | `task.php` |
 | Web | 浏览器访问 | `public/index.php` |
 
 ### Server 模式（推荐）
@@ -439,6 +452,8 @@ server {
 
 Web 模式下：
 - 请求源为 `LarkFrame\Request\WebSource`（从 `$_GET/$_POST/$_SERVER` 读取）
+- **中间件与 Server 模式行为一致**：全局/路由/控制器中间件照常执行，
+  CORS 等响应头中间件在 FPM 下同样生效（404/405 兜底响应也穿全局中间件管道）
 - 无需连接池（每次请求独立进程）
 - 适合低流量或无法运行常驻进程的环境
 

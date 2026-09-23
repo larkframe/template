@@ -2,6 +2,8 @@
 
 return [
     'app' => [
+        // 相对路径基于 ROOT_PATH 解析；注意 config.php 自身内的日志路径在配置加载前求值，
+        // 始终使用默认 runtime 目录（见 core helper.php runtime_path 注释）
         'runtime_path' => 'runtime',
         'name' => 'larkframe',
         // 生产环境默认关闭调试，避免堆栈泄漏；开发时通过 config.dev.php 覆盖为 true
@@ -22,20 +24,26 @@ return [
         'middleware' => [
             \App\Middleware\CorsMiddleware::class,
         ],
-        'static_middleware' => [
+    ],
 
-        ]
+    // CORS 白名单：仅命中列表的 Origin 才会收到跨域响应头（见 App\Middleware\CorsMiddleware）
+    'cors' => [
+        'allow_origins' => [
+            // 'http://localhost:5173',   // 本地前端开发地址，按需修改
+        ],
     ],
 
     'view' => [
         'handler' => LarkFrame\View\Raw::class,
         'options' => [
-            'view_suffix' => 'html',
+            // Raw 引擎模板为 template/default/index.php 等 .php 文件，默认后缀必须为 php；
+            // Twig 模板（template/user/test.html）调用时显式传 'html' 后缀
+            'view_suffix' => 'php',
         ],
     ],
 
     'error' => [
-        // Web/Shell 模式下注册自定义错误处理器；Server 模式在 onWorkerStart 内单独注册
+        // 所有模式（Server/Task/Web/Shell）统一注册错误处理器，日志按 logger 配置写入文件
         'catch' => true,
         'handler' => \App\Base\ErrorHandler::class,
         'options' => [
@@ -51,7 +59,9 @@ return [
                 [
                     'class' => Monolog\Handler\RotatingFileHandler::class,
                     'constructor' => [
-                        runtime_path() . '/logs/access.log',
+                        // 闭包延迟求值：本文件被 require 时配置尚未加载，
+                        // 直接调 runtime_path() 会取默认目录；闭包在 handler 实例化时求值
+                        fn() => runtime_path('logs/access.log'),
                         7, //$maxFiles
                         Monolog\Logger::DEBUG,
                     ],
@@ -68,7 +78,8 @@ return [
         'stores' => [
             'file' => [
                 'driver' => 'file',
-                'path' => runtime_path('cache')
+                // 闭包延迟求值，理由同上
+                'path' => fn() => runtime_path('cache')
             ],
             'redis' => [
                 'driver' => 'redis',
@@ -129,6 +140,8 @@ return [
 
     'queue' => [
         'default' => 'default',
+        // 队列依赖 Redis：默认 client 为 phpredis（需 ext-redis）；
+        // 未安装 ext-redis 时在 redis 配置中增加 'client' => 'predis'（composer 包已随 core 安装）
         'driver' => 'redis',
         'retry_after' => 60,
         'max_tries' => 3,

@@ -190,6 +190,39 @@ return [
 ];
 ```
 
+## 框架文档索引（AI 必读）
+
+框架 `larkframe/core` 的完整文档随包分发，**不在本模板目录内**。按以下顺序定位：
+
+1. **本文件**（AGENTS.md）— 应用层规范与 API 速查，优先遵循
+2. **框架专题文档** — 各组件的深入文档（含行为约定、边界、陷阱）：
+
+| 主题 | 文件（相对项目根目录） |
+|------|------|
+| 应用入口/四模式 | `vendor/larkframe/core/docs/app.md` |
+| 路由 | `vendor/larkframe/core/docs/route.md` |
+| 请求 | `vendor/larkframe/core/docs/request.md` |
+| 响应 | `vendor/larkframe/core/docs/response.md` |
+| 中间件 | `vendor/larkframe/core/docs/middleware.md` |
+| 容器（DI） | `vendor/larkframe/core/docs/container.md` |
+| 配置 | `vendor/larkframe/core/docs/config.md` |
+| 数据库 | `vendor/larkframe/core/docs/database.md` |
+| 缓存 | `vendor/larkframe/core/docs/cache.md` |
+| Redis | `vendor/larkframe/core/docs/redis.md` |
+| 队列 | `vendor/larkframe/core/docs/queue.md` |
+| 日志 | `vendor/larkframe/core/docs/log.md` |
+| 视图 | `vendor/larkframe/core/docs/view.md` |
+| 任务（Task） | `vendor/larkframe/core/docs/task.md` |
+| 协程/连接池 | `vendor/larkframe/core/docs/coroutine.md` |
+| 工具集 | `vendor/larkframe/core/docs/util.md` |
+
+> **路径说明**：composer 安装态如上；若 vendor 中不存在该路径（本地 path 仓库
+> symlink 开发态），framework 源码与文档位于仓库同级 `../core/`，即
+> `../core/docs/*.md` 与 `../core/src/`。文档与代码同版本发布，行为冲突时以
+> `core/src/` 源码为准并向用户报告文档过期。
+
+3. **框架源码** — `vendor/larkframe/core/src/`（最终事实来源；`LarkFrame\` 命名空间 PSR-4 映射到 `src/`）
+
 ## 框架核心 API 速查
 
 ### 请求与响应
@@ -259,13 +292,13 @@ Redis::hGetAll('hash');
 ```php
 use LarkFrame\Queue;
 
-Queue::push('queue', JobClass::class, $data);           // 推送
+Queue::push('queue', JobClass::class, $data);           // 推送（仅任务类名，闭包不可序列化）
 Queue::later('queue', 60, JobClass::class, $data);      // 延迟推送
-Queue::pop('queue');                                      // 弹出
-Queue::size('queue');                                     // 大小
-Queue::clear('queue');                                    // 清空
-Queue::getFailedJobs('queue');                            // 失败任务
-Queue::retryFailed('queue', 0);                           // 重试失败
+Queue::pop();                                            // 弹出（省略队列名时用 config queue.default）
+Queue::size();                                           // 大小
+Queue::clear('queue');                                   // 清空
+Queue::getFailedJobs('queue');                           // 失败任务
+Queue::retryFailed('queue', 0);                          // 重试失败（Lua 原子完成）
 ```
 
 ### 任务（Task）
@@ -288,13 +321,13 @@ Worker::$globalEvent->offDelay($timerId);                      // 取消延迟�
 ```php
 use LarkFrame\Util;
 
-Util::str()->mask('13800138000');              // 脱敏
+Util::str()->mask('13800138000');              // 脱敏（138****8000）
 Util::str()->camelToUnderscore('userName');    // 驼峰转下划线
-Util::str()->formatBytes(1048576);             // 字节格式化
+Util::str()->formatBytes(1048576);             // 字节格式化（默认 IEC → 1 MiB）
 Util::rand()->uuid();                          // UUID v4
-Util::rand()->str(16);                         // 随机字符串
+Util::rand()->str(16);                         // 随机字符串（CSPRNG）
 Util::base64()->urlEncode($data);              // URL 安全 Base64
-Util::base64()->authcode($str, 'ENCODE', $key); // 可逆加密
+Util::base64()->authcode($str, 'ENCODE', $key); // 可逆混淆编码（$key 必填，敏感数据禁用）
 Util::file()->ensureDir($dir);                 // 确保目录
 Util::img()->resize($src, $dst, $w, $h);       // 缩放图片
 Util::mock()->list($template, 10);             // 模拟数据
@@ -337,6 +370,16 @@ Context::destroy();  // 请求结束时自动调用
 3. **连接池**：Server 模式下数据库和 Redis 自动使用连接池，不要手动 `new PDO` 或 `new Redis`
 4. **响应类型**：控制器必须返回 `Response` 对象或使用辅助函数（`json()`/`redirect()`/`raw_view()` 等）；`json()` 状态码固定 200，需自定义状态码链式调用 `->withStatus(401)`
 5. **调试模式**：`config/config.php` 中 `app.debug` 默认 `false`（生产安全），开发时创建 `config/config.dev.php` 覆盖为 `true`；`RUN_MODE=dev` 时框架自动加载该覆盖文件
-6. **错误处理**：`config/config.php` 的 `error.catch` 控制 Web/Shell 模式下是否注册自定义错误处理器（`error.handler` + `error.options`）；Server 模式在 `onWorkerStart` 内单独注册
+6. **错误处理**：`config/config.php` 的 `error.catch` 控制所有模式（Server/Task/Web/Shell）是否注册自定义错误处理器（`error.handler` + `error.options`）；Server/Task 模式 throwOnError=true 将错误转 ErrorException 由 onMessage try-catch 记录，Web/Shell 模式直接记录日志并抑制
 7. **环境变量**：`.env` 仅用于 `APP_NAME`/`TIME_ZONE`/`RUN_MODE` 三个启动参数（框架自动创建），敏感配置应通过 `config/config.{env}.php` 环境覆盖文件管理，不要硬编码
 8. **类库配置**：`app/Library/Xxx.php` 对应 `config/xxx.php`，继承 `LarkFrame\Library` 后通过 `$this->config` 访问
+9. **CORS 白名单**：`CorsMiddleware` 仅回显 `config('cors.allow_origins')` 白名单中的 Origin（配置在 `config/config.php` 的 `cors` 键），不要无条件反射请求 Origin
+10. **authcode 密钥**：`Util::base64()->authcode()` 必须显式传入 `$key`（推荐从配置读取），空密钥会抛 `InvalidArgumentException`
+11. **队列默认名**：`Queue::pop()/size()/clear()` 等不传队列名时使用 `config('queue.default')`，门面不再硬编码 `'default'`
+12. **中间件 fail-fast**：全局/路由/控制器/注解中间件的类不存在或缺少 `process()` 时抛 `RuntimeException`（不静默跳过）；404/405/400 兜底响应也穿全局中间件管道，Web（FPM）模式中间件行为与 Server 模式一致
+13. **环境覆盖浅合并**：`config.{env}.php` 的顶层键（如 `server`）整体替换主配置对应键，覆盖时必须携带完整子结构（如覆盖 socketName 需带上 middleware），否则子键会被清空
+14. **配置内路径用闭包**：log/cache 配置中的 `runtime_path()` 必须写成 `fn() => runtime_path(...)` 延迟求值，直接调用因配置加载时序只会取默认目录
+15. **静态文件**：`public/` 下文件自动支持 Range 断点续传（206+Content-Range）、304 协商缓存与 `Cache-Control: public, max-age=86400`；PHP 请求禁用静态缓存（每次重验）
+16. **视图模板**：模板名相对 `template/` 目录解析，含 `../` 的穿越请求被拒绝抛异常；模板缺失两引擎均抛 `RuntimeException`（不返回 200 错误文案）
+17. **Shell 模式中间件**：Shell 请求同样走完整中间件管道与 `getActionSuffix()` 后缀补全，与 Server 模式行为一致；Shell 下 404 输出纯文本
+18. **Twig extension 配置**：`view.extension` 必须为 callable（接收 `Twig\Environment`），仅在启用 Twig 引擎时配置

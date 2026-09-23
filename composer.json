@@ -1,6 +1,7 @@
 {
   "name": "larkframe/template",
-  "version": "0.1.0",
+  "description": "LarkFrame application template",
+  "license": "MIT",
   "autoload": {
     "psr-4": {
       "App\\": "app"
@@ -8,6 +9,7 @@
   },
   "require": {
     "php": ">=8.1",
+    "ext-json": "*",
     "ext-gd": "*",
     "ext-pdo": "*",
     "larkframe/core": "^0.1.0",
