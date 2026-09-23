@@ -26,7 +26,9 @@ class ShellController
         // 例如：读取 migration 文件，执行 DDL 语句
 
         echo "[Migrate] Done.\n";
-        return 0;
+        // 返回空串而非 0：非 Response/string 的返回值会被归一化为响应体，
+        // echo 0 会在命令输出末尾多打一行 "0"
+        return '';
     }
 
     /**
@@ -46,6 +48,6 @@ class ShellController
             echo "[CacheClear] All cache cleared\n";
         }
 
-        return 0;
+        return '';
     }
 }

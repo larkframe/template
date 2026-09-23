@@ -12,7 +12,10 @@ Route::get('/user/test', [App\Controller\DefaultController::class, 'twig']);
 Route::get('/api', [App\Controller\DefaultController::class, 'api']);
 Route::get('/api/db', [App\Controller\DefaultController::class, 'db']);
 Route::get('/api/cache', [App\Controller\DefaultController::class, 'cache']);
-Route::get('/api/queue', [App\Controller\DefaultController::class, 'queue']);
+// 该路由每次调用都会向 Redis 队列投递任务，匿名可调用时必须限流：
+// ThrottleMiddleware 按 IP + 路径做固定窗口限流（10 次/分钟），超限返回 429
+Route::get('/api/queue', [App\Controller\DefaultController::class, 'queue'])
+    ->middleware(App\Middleware\ThrottleMiddleware::class);
 Route::get('/api/util', [App\Controller\DefaultController::class, 'util']);
 
 // 带参数的路由

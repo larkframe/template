@@ -22,6 +22,17 @@ class CorsMiddleware implements MiddlewareInterface
         $response = $request->method() === 'OPTIONS' ? response('') : $handler($request);
 
         $origin = (string)$request->header('origin', '');
+
+        // 响应内容随 Origin 变化，必须声明 Vary: Origin：否则共享缓存（CDN/反向代理）
+        // 会把某一来源的 CORS 响应（或无 CORS 头的响应）复用给其他来源
+        if ($origin !== '') {
+            $vary = $response->getHeader('Vary');
+            $vary = is_array($vary) ? implode(', ', $vary) : (string)($vary ?? '');
+            if (!str_contains(strtolower($vary), 'origin')) {
+                $response->withHeader('Vary', $vary === '' ? 'Origin' : "{$vary}, Origin");
+            }
+        }
+
         if ($origin !== '' && in_array($origin, (array)config('cors.allow_origins', []), true)) {
             $response->withHeaders([
                 'Access-Control-Allow-Credentials' => 'true',

@@ -18,7 +18,8 @@ class SendEmailJob
         $to = $data['to'] ?? '';
         $subject = $data['subject'] ?? 'No Subject';
 
-        // 常驻 Worker 内禁止 echo：daemonize 模式下 STDOUT 丢失，且会污染同步执行时的 HTTP 响应体
+        // 常驻 Worker 内禁止 echo：daemonize 模式下 STDOUT 丢失，且会污染同步执行时的 HTTP 响应体。
+        // $to/$subject 中的 CR/LF 由 Worker::log 统一折叠为单行，此处无需重复清洗
         Worker::log("[SendEmailJob] Sending email to: {$to}, subject: {$subject}");
 
         // TODO: 实现邮件发送逻辑

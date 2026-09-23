@@ -64,10 +64,19 @@ return [
                         fn() => runtime_path('logs/access.log'),
                         7, //$maxFiles
                         Monolog\Logger::DEBUG,
+                        true, //$bubble
+                        null, //$filePermission
+                        // useLocking：必须为 true。多 worker（server.worker.count > 1 或
+                        // reusePort）并发写同一日志文件时，无 flock 会出现行撕裂/内容交错
+                        true, //$useLocking
                     ],
                     'formatter' => [
                         'class' => LarkFrame\LogFormatter::class,
-                        'constructor' => [null, 'Y-m-d H:i:s', true, false],
+                        // 参数：format, dateFormat, allowInlineLineBreaks, ignoreEmptyContextAndExtra
+                        // allowInlineLineBreaks 必须为 false：置 true 时 message 内的换行会原样落盘，
+                        // 单条日志被拆成多行，异常文本或用户输入即可伪造出额外的日志行。
+                        // 需要多行异常堆栈时改传第 5 个参数 includeStacktraces=true（它会自动开启内联换行）
+                        'constructor' => [null, 'Y-m-d H:i:s', false, false],
                     ],
                 ]
             ],

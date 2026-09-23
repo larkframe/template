@@ -84,11 +84,20 @@ class DefaultController extends Controller
 
     /**
      * 队列推送示例
+     *
+     * 注意：本路由可被匿名调用，生产环境必须叠加鉴权中间件；
+     * 入参也必须校验——未校验时任意字符串都会被投递进队列并被下游消费、写入日志。
      */
     public function queueAction(Request $request)
     {
+        $to = (string) $request->input('to', 'user@example.com');
+
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return json(['code' => 400, 'message' => 'Invalid email address'])->withStatus(400);
+        }
+
         $jobId = Queue::push('emails', \App\Job\SendEmailJob::class, [
-            'to' => $request->input('to', 'user@example.com'),
+            'to' => $to,
             'subject' => 'Welcome',
         ]);
 
